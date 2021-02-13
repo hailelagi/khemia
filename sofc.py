@@ -23,6 +23,10 @@ import math
 import csv
 import inspect
 import os
+from anode import *
+from cathode import *
+from utils import NewtonSolver
+
 
 ct.add_module_directory()
 
@@ -57,121 +61,6 @@ def equil_OCV(gas1, gas2):
         math.log(gas1['O2'].X / gas2['O2'].X) / (4.0*ct.faraday))
 
 
-def NewtonSolver(f, xstart, C=0.0):
-    """
-    Solve f(x) = C by Newton iteration.
-    - xstart    starting point for Newton iteration
-    - C         constant
-    """
-    f0 = f(xstart) - C
-    x0 = xstart
-    dx = 1.0e-6
-    n = 0
-    while n < 200:
-        ff = f(x0 + dx) - C
-        dfdx = (ff - f0)/dx
-        step = - f0/dfdx
-
-        # avoid taking steps too large
-        if abs(step) > 0.1:
-            step = 0.1*step/abs(step)
-
-        x0 += step
-        emax = 0.00001  # 0.01 mV tolerance
-        if abs(f0) < emax and n > 8:
-            return x0
-        f0 = f(x0) - C
-        n += 1
-    raise Exception('no root!')
-
-#####################################################################
-# Anode-side phases
-#####################################################################
-
-# import the anode-side bulk phases
-gas_a, anode_bulk, oxide_a = ct.import_phases('sofc.cti',
-                                              ['gas', 'metal', 'oxide_bulk',])
-
-# import the surfaces on the anode side
-anode_surf = ct.Interface('sofc.cti', 'metal_surface', [gas_a])
-oxide_surf_a = ct.Interface('sofc.cti', 'oxide_surface', [gas_a, oxide_a])
-
-# import the anode-side triple phase boundary
-tpb_a = ct.Interface('sofc.cti', 'tpb', [anode_bulk, anode_surf, oxide_surf_a])
-
-anode_surf.name = 'anode surface'
-oxide_surf_a.name = 'anode-side oxide surface'
-
-
-# this function is defined to use with NewtonSolver to invert the current-
-# voltage function. NewtonSolver requires a function of one variable, so the
-# other objects are accessed through the global namespace.
-def anode_curr(E):
-    """
-    Current from the anode as a function of anode potential relative to
-    electrolyte.
-    """
-
-    # the anode-side electrolyte potential is kept at zero. Therefore, the
-    # anode potential is just equal to E.
-    anode_bulk.electric_potential = E
-
-    # get the species net production rates due to the anode-side TPB reaction
-    # mechanism. The production rate array has the values for the neighbor
-    # species in the order listed in the .cti file, followed by the tpb phase.
-    # Since the first neighbor phase is the bulk metal, species 0 is the
-    # electron.
-    w = tpb_a.net_production_rates
-
-    # the sign convention is that the current is positive when
-    # electrons are being delivered to the anode - i.e. it is positive
-    # for fuel cell operation.
-    return ct.faraday * w[0] * TPB_length_per_area
-
-
-#####################################################################
-# Cathode-side phases
-#####################################################################
-
-# Here for simplicity we are using the same phase and interface models for the
-# cathode as we used for the anode. In a more realistic simulation, separate
-# models would be used for the cathode, with a different reaction mechanism.
-
-# import the cathode-side bulk phases
-gas_c, cathode_bulk, oxide_c = ct.import_phases('sofc.cti',
-                                                ['gas', 'metal', 'oxide_bulk'])
-
-# import the surfaces on the cathode side
-cathode_surf = ct.Interface('sofc.cti', 'metal_surface', [gas_c])
-oxide_surf_c = ct.Interface('sofc.cti', 'oxide_surface', [gas_c, oxide_c])
-
-# import the cathode-side triple phase boundary
-tpb_c = ct.Interface('sofc.cti', 'tpb', [cathode_bulk, cathode_surf,
-                                         oxide_surf_c])
-
-cathode_surf.name = 'cathode surface'
-oxide_surf_c.name = 'cathode-side oxide surface'
-
-
-def cathode_curr(E):
-    """Current to the cathode as a function of cathode
-    potential relative to electrolyte"""
-
-    # due to ohmic losses, the cathode-side electrolyte potential is non-zero.
-    # Therefore, we need to add this potential to E to get the cathode
-    # potential.
-    cathode_bulk.electric_potential = E + oxide_c.electric_potential
-
-    # get the species net production rates due to the cathode-side TPB
-    # reaction mechanism. The production rate array has the values for the
-    # neighbor species in the order listed in the .cti file, followed by the
-    # tpb phase. Since the first neighbor phase is the bulk metal, species 0
-    # is the electron.
-    w = tpb_c.net_production_rates
-
-    # the sign convention is that the current is positive when electrons are
-    # being drawn from the cathode (i.e, negative production rate).
-    return -ct.faraday * w[0] * TPB_length_per_area
 
 # initialization
 
@@ -185,6 +74,7 @@ gas_c.equilibrate('TP')  # needed to use equil_OCV
 
 phases = [anode_bulk, anode_surf, oxide_surf_a, oxide_a, cathode_bulk,
           cathode_surf, oxide_surf_c, oxide_c, tpb_a, tpb_c]
+
 for p in phases:
     p.TP = T, P
 
