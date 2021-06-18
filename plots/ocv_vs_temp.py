@@ -1,0 +1,1 @@
+# Graph of Open Circuit voltage(y-axis) against Temperature (x-axis)
