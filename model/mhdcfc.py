@@ -146,6 +146,6 @@ for n in range(100):
                      cathode_bulk.electric_potential -
                      anode_bulk.electric_potential])
 
-print('polarization curve data written to file sofc.csv')
+print('polarization curve data written to file mhdcfc.csv')
 
 csvfile.close()
