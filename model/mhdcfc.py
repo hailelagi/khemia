@@ -1,50 +1,43 @@
 """
-A simple model of a solid oxide fuel cell.
-
-Unlike most SOFC models, this model does not use semi-empirical Butler- Volmer
-kinetics for the charge transfer reactions, but uses elementary, reversible
-reactions obeying mass-action kinetics for all reactions, including charge
-transfer. As this script will demonstrate, this approach allows computing the
-OCV (it does not need to be separately specified), as well as polarization
-curves.
-
-NOTE: The parameters here, and in the input file sofc.cti, are not to be
-relied upon for a real SOFC simulation! They are meant to illustrate only how
-to do such a calculation in Cantera. While some of the parameters may be close
-to real values, others are simply set arbitrarily to give reasonable-looking
-results.
-
-It is recommended that you read input file sofc.cti before reading or running
-this script!
+A simple model of a molten hydroxide direct carbon fuel cell using
+elementary, reversible reactions obeying mass-action kinetics for all reactions
+including charge transfer.
 """
 
-import cantera as ct
 import math
 import csv
-import inspect
-import os
 from anode import *
 from cathode import *
 from utils import NewtonSolver
 
-
 ct.add_module_directory()
 
 # parameters
-T = 1073.15  # T in K
-P = ct.one_atm
+# molten hydroxide fuel cell was heated to 500 degrees Celsius
+T = 1073.15  # T in K 500 + 273.15 at stp
+P = ct.one_atm # Pressure 1 bar at stp
 
-# gas compositions. Change as desired.
-anode_gas_X = 'H2:0.97, H2O:0.03'
-cathode_gas_X = 'O2:1.0, H2O:0.001'
+# Guiding reaction within fuel cell
+########################
+# Anode:
+# C + 202 -> C02 + 4e-
+# Cathode:
+# O2 + 4e- = 202-
+# Overall:
+# C+ 02 -> CO2
+########################
+
+# gas compositions
+anode_gas_X = 'CO2:1, E:4'
+cathode_gas_X = 'O2:2'
 
 # time to integrate coverage eqs. to steady state in
 # 'advanceCoverages'. This should be more than enough time.
 tss = 50.0
 
 sigma = 2.0  # electrolyte conductivity [Siemens / m]
-ethick = 5.0e-5  # electrolyte thickness [m]
-TPB_length_per_area = 1.0e7  # TPB length per unit area [1/m]
+# ethick = 5.0e-5  # electrolyte thickness [m]
+# TPB_length_per_area = 1.0e7  # TPB length per unit area [1/m]
 
 
 def show_coverages(s):
@@ -57,6 +50,7 @@ def show_coverages(s):
 
 
 def equil_OCV(gas1, gas2):
+    # Tweak this
     return (-ct.gas_constant * gas1.T *
         math.log(gas1['O2'].X / gas2['O2'].X) / (4.0*ct.faraday))
 
@@ -105,7 +99,7 @@ print()
 Ea_min = Ea0 - 0.25
 Ea_max = Ea0 + 0.25
 
-csvfile = open('sofc.csv', 'w')
+csvfile = open('mhdcfc.csv', 'w')
 writer = csv.writer(csvfile)
 writer.writerow(['i (mA/cm2)', 'eta_a', 'eta_c', 'eta_ohmic', 'Eload'])
 

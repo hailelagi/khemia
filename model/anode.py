@@ -4,18 +4,21 @@ import cantera as ct
 # Anode-side phases
 #####################################################################
 
+# Anode:
+# C + 202 -> C02 + 4e-
+
 TPB_length_per_area = 1.0e7  # TPB length per unit area [1/m]
 
 # import the anode-side bulk phases
-gas_a, anode_bulk, oxide_a = ct.import_phases('sofc.cti',
+gas_a, anode_bulk, oxide_a = ct.import_phases('mhdcfc_mechanism.cti',
                                               ['gas', 'metal', 'oxide_bulk',])
 
 # import the surfaces on the anode side
-anode_surf = ct.Interface('sofc.cti', 'metal_surface', [gas_a])
-oxide_surf_a = ct.Interface('sofc.cti', 'oxide_surface', [gas_a, oxide_a])
+anode_surf = ct.Interface('mhdcfc_mechanism.cti', 'metal_surface', [gas_a])
+oxide_surf_a = ct.Interface('mhdcfc_mechanism.cti', 'oxide_surface', [gas_a, oxide_a])
 
 # import the anode-side triple phase boundary
-tpb_a = ct.Interface('sofc.cti', 'tpb', [anode_bulk, anode_surf, oxide_surf_a])
+tpb_a = ct.Interface('mhdcfc_mechanism.cti', 'tpb', [anode_bulk, anode_surf, oxide_surf_a])
 
 anode_surf.name = 'anode surface'
 oxide_surf_a.name = 'anode-side oxide surface'
@@ -24,6 +27,7 @@ oxide_surf_a.name = 'anode-side oxide surface'
 # this function is defined to use with NewtonSolver to invert the current-
 # voltage function. NewtonSolver requires a function of one variable, so the
 # other objects are accessed through the global namespace.
+
 def anode_curr(E):
     """
     Current from the anode as a function of anode potential relative to

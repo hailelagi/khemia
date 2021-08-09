@@ -11,15 +11,15 @@ import cantera as ct
 TPB_length_per_area = 1.0e7  # TPB length per unit area [1/m]
 
 # import the cathode-side bulk phases
-gas_c, cathode_bulk, oxide_c = ct.import_phases('sofc.cti',
+gas_c, cathode_bulk, oxide_c = ct.import_phases('mhdcfc_mechanism.cti',
                                                 ['gas', 'metal', 'oxide_bulk'])
 
 # import the surfaces on the cathode side
-cathode_surf = ct.Interface('sofc.cti', 'metal_surface', [gas_c])
-oxide_surf_c = ct.Interface('sofc.cti', 'oxide_surface', [gas_c, oxide_c])
+cathode_surf = ct.Interface('mhdcfc_mechanism.cti', 'metal_surface', [gas_c])
+oxide_surf_c = ct.Interface('mhdcfc_mechanism.cti', 'oxide_surface', [gas_c, oxide_c])
 
 # import the cathode-side triple phase boundary
-tpb_c = ct.Interface('sofc.cti', 'tpb', [cathode_bulk, cathode_surf,
+tpb_c = ct.Interface('mhdcfc_mechanism.cti', 'tpb', [cathode_bulk, cathode_surf,
                                          oxide_surf_c])
 
 cathode_surf.name = 'cathode surface'
